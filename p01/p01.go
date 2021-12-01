@@ -3,20 +3,35 @@ package p01
 import (
 	"fmt"
 	"io"
-    "strconv"
-    "strings"
+	"strconv"
+	"strings"
 
 	. "aoc2021/helpers"
 )
 
 func A(in io.Reader) {
-    lines := ReadLines(in)
-    _ = lines
+	depths := IntLines(ReadLines(in))
+	chg := 0
+	for i, d := range depths[1:] {
+		if depths[i] < d {
+			chg++
+		}
+	}
+	fmt.Println(chg)
 }
 
 func B(in io.Reader) {
-    lines := ReadLines(in)
-    _ = lines
+	depths := IntLines(ReadLines(in))
+	prev := depths[0] + depths[1] + depths[2]
+	chg := 0
+	for i := range depths[3:] {
+		next := prev - depths[i] + depths[i+3]
+		if next > prev {
+			chg++
+		}
+		prev = next
+	}
+	fmt.Println(chg)
 }
 
 //
