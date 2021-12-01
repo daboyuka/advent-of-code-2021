@@ -3,8 +3,6 @@ package p01
 import (
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 
 	. "aoc2021/helpers"
 )
@@ -22,7 +20,7 @@ func A(in io.Reader) {
 
 func B(in io.Reader) {
 	depths := IntLines(ReadLines(in))
-	prev := depths[0] + depths[1] + depths[2]
+	prev := Sum(depths[:3]...)
 	chg := 0
 	for i := range depths[3:] {
 		next := prev - depths[i] + depths[i+3]
@@ -33,7 +31,3 @@ func B(in io.Reader) {
 	}
 	fmt.Println(chg)
 }
-
-//
-
-var _, _, _ = fmt.Sprintf, strings.Split, strconv.ParseFloat // use something from imports so we can always have them in our template
