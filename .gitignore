@@ -1,3 +1,6 @@
+# Downloaded input files
+inputs/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

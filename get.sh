@@ -2,7 +2,10 @@
 
 DAY=$1
 
-curl -b ~/.aoc_cookies https://adventofcode.com/2021/day/$DAY/input -o inputs/$DAY.input
+while ! curl --fail -b ~/.aoc_cookies https://adventofcode.com/2021/day/$DAY/input -o inputs/$DAY.input; do
+  >&2 echo "failed to get day input; retrying"
+  sleep 1
+done
 
 curl -b ~/.aoc_cookies https://adventofcode.com/2021/day/$DAY -o - | \
   awk '
