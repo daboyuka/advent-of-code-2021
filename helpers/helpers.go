@@ -79,6 +79,16 @@ func Sum(xs ...int) (sum int) {
 	return sum
 }
 
+func Cum(xs []int) (cs []int) {
+	cs = make([]int, len(xs))
+	sum := 0
+	for i, x := range xs {
+		sum += x
+		cs[i] = sum
+	}
+	return cs
+}
+
 // x in [min, max) or min or max-1
 func Clamp(x, min, max int) int {
 	if x < min {
