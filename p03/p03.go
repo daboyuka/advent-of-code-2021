@@ -7,55 +7,46 @@ import (
 	. "aoc2021/helpers"
 )
 
-func mostCommon(lines []string, pos int, tie bool) bool {
+// note: leastCommon = !mostCommon (ties invert to 0 as intended)
+func mostCommon(lines []string, pos int) bool {
 	count := 0
 	for _, l := range lines {
 		if l[pos] == '1' {
 			count++
 		}
 	}
-	if count == len(lines)-count {
-		return tie
-	}
-	return count > len(lines)-count
+	return count >= len(lines)-count // tie goes to 1
 }
 
-func leastCommon(lines []string, pos int, tie bool) bool {
-	count := 0
+func filterBitmasks(lines []string, pos int, useMostCommon bool) []string {
+	if len(lines) < 2 {
+		return lines
+	}
+
+	criterion := mostCommon(lines, pos) == useMostCommon // invert if !useMostCommon
+	idx := 0
 	for _, l := range lines {
-		if l[pos] == '1' {
-			count++
+		if (l[pos] == '1') == criterion {
+			lines[idx] = l
+			idx++
 		}
 	}
-	if count == len(lines)-count {
-		return tie
-	}
-	return count < len(lines)-count
+	return lines[:idx]
 }
 
 func A(in io.Reader) {
 	lines := ReadLines(in)
-	count := make([]int, len(lines[0]))
-	for _, l := range lines {
-		for i, c := range l {
-			if c == '1' {
-				count[i]++
-			}
-		}
-	}
 
-	mask := 0
-	gamma := 0
-	for _, c := range count {
-		mask <<= 1
-		mask |= 1
+	gamma, epsilon := 0, 0
+	for pos := range lines[0] {
 		gamma <<= 1
-		if c > len(lines)/2 { // more 1 bits
+		epsilon <<= 1
+		if mostCommon(lines, pos) {
 			gamma |= 1
+		} else {
+			epsilon |= 1
 		}
 	}
-
-	epsilon := gamma ^ mask
 
 	fmt.Println(gamma, epsilon)
 	fmt.Println(gamma * epsilon)
@@ -68,50 +59,20 @@ func B(in io.Reader) {
 	co2Lines := append([]string(nil), lines...)
 
 	for pos := range lines[0] { // bitpos
-		oxyBit := mostCommon(oxyLines, pos, true)
-		co2Bit := leastCommon(co2Lines, pos, false)
-
-		fmt.Println(oxyBit, co2Bit)
-
-		if len(oxyLines) > 1 {
-			oxyPos := 0
-			for _, l := range oxyLines {
-				if (l[pos] == '1') == oxyBit {
-					fmt.Println("oxy keep", l)
-					oxyLines[oxyPos] = l
-					oxyPos++
-				} else {
-					fmt.Println("oxy drop", l, l[pos], oxyBit)
-				}
-			}
-			oxyLines = oxyLines[:oxyPos]
-		}
-
-		if len(co2Lines) > 1 {
-			co2Pos := 0
-			for _, l := range co2Lines {
-				if (l[pos] == '1') == co2Bit {
-					fmt.Println("co2 keep", l)
-					co2Lines[co2Pos] = l
-					co2Pos++
-				} else {
-					fmt.Println("co2 drop", l)
-				}
-			}
-			co2Lines = co2Lines[:co2Pos]
-		}
-
-		fmt.Println()
+		oxyLines = filterBitmasks(oxyLines, pos, true)
+		co2Lines = filterBitmasks(co2Lines, pos, false)
 	}
 
-	fmt.Println(oxyLines[0], co2Lines[0])
+	oxyBits, co2Bits := oxyLines[0], co2Lines[0]
+
+	fmt.Println(oxyBits, co2Bits)
 
 	oxyVal, co2Val := 0, 0
-	for i := range oxyLines[0] {
+	for i := range oxyBits {
 		oxyVal <<= 1
 		co2Val <<= 1
-		oxyVal |= int(oxyLines[0][i] - '0')
-		co2Val |= int(co2Lines[0][i] - '0')
+		oxyVal |= int(oxyBits[i] - '0')
+		co2Val |= int(co2Bits[i] - '0')
 	}
 
 	fmt.Println(oxyVal, co2Val)
