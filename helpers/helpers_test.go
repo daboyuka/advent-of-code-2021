@@ -1,6 +1,9 @@
 package helpers
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestSplit2(t *testing.T) {
 	tests := []struct {
@@ -35,6 +38,25 @@ func TestSplit3(t *testing.T) {
 		a, b, c := Split3(tst.S, tst.Sep1, tst.Sep2)
 		if a != tst.ExpectA || b != tst.ExpectB || c != tst.ExpectC {
 			t.Fatalf("%+v vs. '%s' '%s' '%s'", tst, a, b, c)
+		}
+	}
+}
+
+func TestWords(t *testing.T) {
+	tests := []struct {
+		S      string
+		Expect []string
+	}{
+		{"", nil},
+		{"aaa", []string{"aaa"}},
+		{"aaa bbb ccc", []string{"aaa", "bbb", "ccc"}},
+		{"aaa  bbb \t\n ccc", []string{"aaa", "bbb", "ccc"}},
+		{"  aaa bbb  ", []string{"aaa", "bbb"}},
+	}
+	for _, tst := range tests {
+		out := Words(tst.S)
+		if !reflect.DeepEqual(out, tst.Expect) {
+			t.Fatalf("%+v vs. %+v", tst, out)
 		}
 	}
 }

@@ -64,7 +64,7 @@ var word = regexp.MustCompile(` +`)
 
 func toBingo(lines []string) (b bingo) {
 	for _, line := range lines {
-		b = append(b, IntLines(word.Split(strings.TrimSpace(line), -1)))
+		b = append(b, Ints(word.Split(strings.TrimSpace(line), -1)))
 	}
 	return b
 }

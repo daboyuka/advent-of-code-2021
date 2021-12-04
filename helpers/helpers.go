@@ -1,12 +1,19 @@
 package helpers
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-func IntLines(lines []string) (out []int) {
-	for _, line := range lines {
+var wordRegexp = regexp.MustCompile(`\w+`)
+
+func Words(s string) []string {
+	return wordRegexp.FindAllString(s, -1)
+}
+
+func Ints(strs []string) (out []int) {
+	for _, line := range strs {
 		out = append(out, Atoi(line))
 	}
 	return out

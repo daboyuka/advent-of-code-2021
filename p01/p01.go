@@ -8,7 +8,7 @@ import (
 )
 
 func A(in io.Reader) {
-	depths := IntLines(ReadLines(in))
+	depths := Ints(ReadLines(in))
 	chg := 0
 	for i, d := range depths[1:] {
 		if depths[i] < d {
@@ -19,7 +19,7 @@ func A(in io.Reader) {
 }
 
 func B(in io.Reader) {
-	depths := IntLines(ReadLines(in))
+	depths := Ints(ReadLines(in))
 	prev := Sum(depths[:3]...)
 	chg := 0
 	for i := range depths[3:] {
