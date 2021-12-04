@@ -3,7 +3,6 @@ package p04
 import (
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	. "aoc2021/helpers"
@@ -36,13 +35,12 @@ func (b bingo) Sum() (s int) {
 
 func (b bingo) Won() bool {
 rowcheck:
-	for i, row := range b {
+	for _, row := range b {
 		for _, v := range row {
 			if v != -1 {
 				continue rowcheck
 			}
 		}
-		fmt.Println("won on row ", i)
 		return true
 	}
 
@@ -53,31 +51,30 @@ colcheck:
 				continue colcheck
 			}
 		}
-		fmt.Println("won on col ", j)
 		return true
 	}
 
 	return false
 }
 
-var word = regexp.MustCompile(` +`)
-
 func toBingo(lines []string) (b bingo) {
 	for _, line := range lines {
-		b = append(b, Ints(word.Split(strings.TrimSpace(line), -1)))
+		b = append(b, Ints(Words(line)))
 	}
 	return b
 }
 
-func A(in io.Reader) {
+func parseInput(in io.Reader) (numbers []int, bingos []bingo) {
 	lg := ReadLinegroups(in)
-	numbers := IntLines(strings.Split(lg[0][0], ","))
-
-	var bingos []bingo
-	for _, bingoLines := range lg[1:] {
-		bingos = append(bingos, toBingo(bingoLines))
+	numbers = Ints(strings.Split(lg[0][0], ","))
+	for _, lines := range lg[1:] {
+		bingos = append(bingos, toBingo(lines))
 	}
+	return numbers, bingos
+}
 
+func A(in io.Reader) {
+	numbers, bingos := parseInput(in)
 	for _, n := range numbers {
 		for bi, b := range bingos {
 			b.Mark(n)
@@ -92,14 +89,7 @@ func A(in io.Reader) {
 }
 
 func B(in io.Reader) {
-	lg := ReadLinegroups(in)
-	numbers := IntLines(strings.Split(lg[0][0], ","))
-
-	var bingos []bingo
-	for _, bingoLines := range lg[1:] {
-		bingos = append(bingos, toBingo(bingoLines))
-	}
-
+	numbers, bingos := parseInput(in)
 	for _, n := range numbers {
 		rem := 0
 		for bi, b := range bingos {
