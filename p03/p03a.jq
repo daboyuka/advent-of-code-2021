@@ -1,4 +1,4 @@
-#!/usr/local/bin/jq -s -R -f
+#!/usr/bin/env jq -s -R -f
 
 # Bits are maintained as one-char strings
 

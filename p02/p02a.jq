@@ -1,4 +1,5 @@
-#!/usr/local/bin/jq -s -R -f
+#!/usr/bin/env jq -s -R -f
+
 reduce (                                # "as $move" block: parse input text into {dir:str, amt:num} pairs
   split("\n") | map(select(. != "")) |  # each (non-empty) line as a string
   map(

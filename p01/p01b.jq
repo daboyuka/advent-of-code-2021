@@ -1,4 +1,4 @@
-#!/usr/local/bin/jq -s -f
+#!/usr/bin/env jq -s -f
 
 reduce .[3:][] as $depth ( {prevwin: .[:3], inc: 0} ;  # keep .prevwin as a 3-element window
   ( .prevwin[1:] + [$depth] ) as $nextwin |

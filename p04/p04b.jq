@@ -1,5 +1,4 @@
-#!/usr/local/bin/jq -s -R -f
-
+#!/usr/bin/env jq -s -R -f
 include "./helpers";
 
 def parse:
