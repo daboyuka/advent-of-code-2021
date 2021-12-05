@@ -4,6 +4,8 @@ def debugtee(what): (what | debug | empty), . ;
 # Splits input as per -sR into non-empty lines
 def lines: split("\n") | map(select(. != "")) ;
 
+def htmlunescape: gsub("&gt;" ; ">") | gsub("&lt;" ; "<") ;
+
 def linegroups:
   reduce split("\n")[] as $line ( [[]] ;
     if $line == "" then . + [[]]

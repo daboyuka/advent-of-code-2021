@@ -1,4 +1,4 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "./p05/p05common";
 
-lines
+parse | solve(false)  # with diagonals
