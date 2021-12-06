@@ -17,32 +17,28 @@ func evolve(fishAtAge []int) []int {
 	return newFishAtAge
 }
 
-func A(in io.Reader) {
+func run(input string, n int) []int {
 	fishAtAge := make([]int, 9)
 
-	for _, age := range Ints(strings.Split(ReadLines(in)[0], ",")) {
+	for _, age := range Ints(strings.Split(input, ",")) {
 		fishAtAge[age]++
 	}
 
-	for i := 0; i < 80; i++ {
+	for i := 0; i < n; i++ {
 		fishAtAge = evolve(fishAtAge)
 	}
 
+	return fishAtAge
+}
+
+func A(in io.Reader) {
+	fishAtAge := run(ReadLines(in)[0], 80)
 	fmt.Println(fishAtAge)
 	fmt.Println(Sum(fishAtAge...))
 }
 
 func B(in io.Reader) {
-	fishAtAge := make([]int, 9)
-
-	for _, age := range Ints(strings.Split(ReadLines(in)[0], ",")) {
-		fishAtAge[age]++
-	}
-
-	for i := 0; i < 256; i++ {
-		fishAtAge = evolve(fishAtAge)
-	}
-
+	fishAtAge := run(ReadLines(in)[0], 256)
 	fmt.Println(fishAtAge)
 	fmt.Println(Sum(fishAtAge...))
 }
