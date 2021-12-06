@@ -1,4 +1,6 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "./p06/common";
 
-lines
+parse |
+nevolve(80) |
+add
