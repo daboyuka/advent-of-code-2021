@@ -1,4 +1,5 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p07/common";
 
-lines
+parse |
+minfuel(. * (.+1) / 2)
