@@ -8,52 +8,37 @@ import (
 	. "aoc2021/helpers"
 )
 
-func A(in io.Reader) {
-	poss := Ints(strings.Split(ReadLines(in)[0], ","))
-
-	cnts := map[int]int{}
-	for _, pos := range poss {
-		cnts[pos]++
-	}
-
-	sum := Sum(poss...)
-	total := len(poss)
-	behind := 0
-	minSum := sum
-	minSumAt := 0
-	for i := 1; i <= Max(poss...); i++ {
-		behind += cnts[i-1]
-
-		sum += behind - (total - behind)
-		if sum < minSum {
-			minSum = sum
-			minSumAt = i
-		}
-	}
-	fmt.Println(minSumAt, minSum)
-}
-
-func B(in io.Reader) {
+func run(in io.Reader, distMetric func(int) int) (minSumAt int, minSum int) {
 	poss := Ints(strings.Split(ReadLines(in)[0], ","))
 
 	posCounts := map[int]int{}
-
 	for _, pos := range poss {
 		posCounts[pos]++
 	}
 
-	minSum := 1<<31 - 1
-	minSumAt := 0
+	minSum = -1
 	for i := 0; i <= Max(poss...); i++ {
 		sum := 0
 		for p, c := range posCounts {
 			d := Abs(p - i)
-			sum += d * (d + 1) / 2 * c
+			sum += distMetric(d) * c
 		}
-		if sum < minSum {
-			minSum = sum
-			minSumAt = i
+		if minSum == -1 || sum < minSum {
+			minSumAt, minSum = i, sum
 		}
 	}
-	fmt.Println(minSumAt, minSum)
+
+	return minSumAt, minSum
+}
+
+func A(in io.Reader) {
+	at, sum := run(in, func(d int) int { return d })
+	fmt.Println(at)
+	fmt.Println(sum)
+}
+
+func B(in io.Reader) {
+	at, sum := run(in, func(d int) int { return d * (d + 1) / 2 })
+	fmt.Println(at)
+	fmt.Println(sum)
 }
