@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var wordRegexp = regexp.MustCompile(`\w+`)
+var wordRegexp = regexp.MustCompile(`\S+`)
 
 func Words(s string) []string {
 	return wordRegexp.FindAllString(s, -1)
