@@ -14,3 +14,11 @@ def linegroups:
   ) |
   map(select(length > 0)) # only keep non-empty linegroups
 ;
+
+def assert(f; err; $loc):
+    (if $loc then "\($loc.file):\($loc.line): " else "" end) as $pre |
+    ( f // error($pre + (err|tostring)) | empty ), .;
+def assert(f; err): assert(f; err; null);
+
+def asserttype($t; $loc): assert(type == $t; "expected \($t), got \(type)"; $loc);
+def asserttype($t): asserttype($t; null);
