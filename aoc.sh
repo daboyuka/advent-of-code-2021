@@ -20,6 +20,10 @@ function get() {
       /<\/code><\/pre>/{on=0;num++;}
       on{file = "inputs/'$DAY'" part ".sample" num ".input"; print > file;}
     '
+
+  for f in inputs/$DAY?.sample*.input; do
+    sed -E -i '' -e 's|</?[^>]+>||g ; s|&lt;|<|g ; s|&gt;|>|g' "$f"
+  done
 }
 
 function samp() {
