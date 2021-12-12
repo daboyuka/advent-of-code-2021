@@ -8,50 +8,40 @@ import (
 	. "aoc2021/helpers"
 )
 
-var braces = map[byte]byte{
+var braces = map[rune]rune{
 	'[': ']',
 	'(': ')',
 	'{': '}',
 	'<': '>',
 }
 
-func checkCorrupted(line string) byte {
-	stack := []byte{}
+func check(line string) (corruptSym rune, missingTail string) {
+	var stack []rune
 	for _, c := range line {
-		if _, ok := braces[byte(c)]; ok {
-			stack = append(stack, byte(c))
-		} else if len(stack) == 0 {
+		if _, ok := braces[c]; ok { // opening symbol (push)
+			stack = append(stack, c)
+		} else if len(stack) == 0 { // closing symbol but empty stack (behavior not specified by problem)
 			panic("wut")
-		} else if top := stack[len(stack)-1]; braces[top] != byte(c) {
-			return byte(c)
-		} else {
-			stack = stack[:len(stack)-1]
-		}
-	}
-	return 0
-}
-
-func findRemaining(line string) (end string) {
-	stack := []byte{}
-	for _, c := range line {
-		if _, ok := braces[byte(c)]; ok {
-			stack = append(stack, byte(c))
-		} else if len(stack) == 0 {
-			panic("wut")
-		} else if top := stack[len(stack)-1]; braces[top] != byte(c) {
-			panic("corrupt")
-		} else {
+		} else if top := stack[len(stack)-1]; braces[top] != c { // closing symbol but does not match opening symbol (corrupt)
+			return c, ""
+		} else { // closing symbol matches opening symbol (pop)
 			stack = stack[:len(stack)-1]
 		}
 	}
 
-	for _, c := range stack {
-		end = string(rune(braces[c])) + end
+	// If we get this far, no corruption; return missing tail (may be empty if well-formed line)
+	l := len(stack)
+	for i := range stack[:l/2] { // reverse stack
+		j := l - i - 1
+		stack[i], stack[j] = stack[j], stack[i]
 	}
-	return end
+	for i, c := range stack { // map to closing braces
+		stack[i] = braces[c]
+	}
+	return 0, string(stack)
 }
 
-var score = map[byte]int{
+var score = map[rune]int{
 	')': 3,
 	']': 57,
 	'}': 1197,
@@ -59,18 +49,17 @@ var score = map[byte]int{
 }
 
 func A(in io.Reader) {
-	lines := ReadLines(in)
 	total := 0
-	for i, l := range lines {
-		if badBrace := checkCorrupted(l); badBrace != 0 {
-			fmt.Println(i, string(rune(badBrace)))
-			total += score[badBrace]
+	for i, l := range ReadLines(in) {
+		if corruptSym, _ := check(l); corruptSym != 0 {
+			fmt.Println(i, string(corruptSym))
+			total += score[corruptSym]
 		}
 	}
 	fmt.Println(total)
 }
 
-var score2 = map[byte]int{
+var score2 = map[rune]int{
 	')': 1,
 	']': 2,
 	'}': 3,
@@ -78,22 +67,14 @@ var score2 = map[byte]int{
 }
 
 func B(in io.Reader) {
-	lines := ReadLines(in)
-	keep := 0
-	for _, l := range lines {
-		if checkCorrupted(l) == 0 {
-			lines[keep] = l
-			keep++
-		}
-	}
-	lines = lines[:keep]
-
-	scores := []int{}
-	for _, l := range lines {
-		if rem := findRemaining(l); rem != "" {
+	var scores []int
+	for _, l := range ReadLines(in) {
+		if corruptSym, missingTail := check(l); corruptSym != 0 {
+			continue // skip corrupt lines
+		} else if missingTail != "" {
 			s := 0
-			for _, c := range rem {
-				s = 5*s + score2[byte(c)]
+			for _, c := range missingTail {
+				s = 5*s + score2[c]
 			}
 			scores = append(scores, s)
 		}
