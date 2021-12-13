@@ -8,97 +8,68 @@ import (
 	. "aoc2021/helpers"
 )
 
-type Pt struct{ X, Y int }
+type fold struct {
+	Axis  rune
+	Coord int
+}
 
-func A(in io.Reader) {
-	g := map[Pt]bool{}
+func parseFold(line string) fold {
+	dimS, coordS := Split2(strings.TrimPrefix(line, "fold along "), "=")
+	return fold{rune(dimS[0]), Atoi(coordS)}
+}
+
+func parsePos(line string) Pos {
+	xS, yS := Split2(line, ",")
+	x, y := Atoi(xS), Atoi(yS)
+	return Pos{y, x} // r, c
+}
+
+func parseInput(in io.Reader) (g InfGrid, folds []fold) {
+	g = InfGrid{}
 	lg := ReadLinegroups(in)
 
 	for _, line := range lg[0] {
-		xS, yS := Split2(line, ",")
-		x, y := Atoi(xS), Atoi(yS)
-		g[Pt{x, y}] = true
+		g[parsePos(line)] = '#'
 	}
+	for _, line := range lg[1] {
+		folds = append(folds, parseFold(line))
+	}
+	return g, folds
+}
 
-	folds := lg[1]
-	for _, f := range folds[:1] {
-		f := strings.TrimPrefix(f, "fold along ")
-		dim, coordS := Split2(f, "=")
-		coord := Atoi(coordS)
-
-		for p := range g {
-			switch dim {
-			case "x":
-				if p.X > coord {
-					delete(g, p)
-					g[Pt{2*coord - p.X, p.Y}] = true
-				}
-			case "y":
-				if p.Y > coord {
-					delete(g, p)
-					g[Pt{p.X, 2*coord - p.Y}] = true
-				}
+func (f fold) Fold(g InfGrid) {
+	for p, v := range g {
+		switch f.Axis {
+		case 'x':
+			if p.Col > f.Coord {
+				delete(g, p)
+				g[Pos{p.Row, 2*f.Coord - p.Col}] = v
 			}
+		case 'y':
+			if p.Row > f.Coord {
+				delete(g, p)
+				g[Pos{2*f.Coord - p.Row, p.Col}] = v
+			}
+		default:
+			panic(fmt.Errorf("unknwon fold %c", f.Axis))
 		}
 	}
+}
+
+func A(in io.Reader) {
+	g, folds := parseInput(in)
+
+	folds[0].Fold(g)
 
 	fmt.Println(len(g))
 }
 
 func B(in io.Reader) {
-	g := map[Pt]bool{}
-	lg := ReadLinegroups(in)
+	g, folds := parseInput(in)
 
-	for _, line := range lg[0] {
-		xS, yS := Split2(line, ",")
-		x, y := Atoi(xS), Atoi(yS)
-		g[Pt{x, y}] = true
-	}
-
-	folds := lg[1]
 	for _, f := range folds {
-		f := strings.TrimPrefix(f, "fold along ")
-		dim, coordS := Split2(f, "=")
-		coord := Atoi(coordS)
-
-		for p := range g {
-			switch dim {
-			case "x":
-				if p.X > coord {
-					delete(g, p)
-					g[Pt{2*coord - p.X, p.Y}] = true
-				}
-			case "y":
-				if p.Y > coord {
-					delete(g, p)
-					g[Pt{p.X, 2*coord - p.Y}] = true
-				}
-			}
-		}
+		f.Fold(g)
 	}
 
-	maxX, maxY := 0, 0
-	for p := range g {
-		if maxX < p.X {
-			maxX = p.X
-		}
-		if maxY < p.Y {
-			maxY = p.Y
-		}
-	}
-
-	g2 := make(FixedGrid, maxY+1)
-	for i := range g2 {
-		g2[i] = make([]rune, maxX+1)
-		for j := range g2[i] {
-			g2[i][j] = ' '
-		}
-	}
-	for p := range g {
-		g2[p.Y][p.X] = '#'
-	}
-
-	for _, r := range g2 {
-		fmt.Println(string(r))
-	}
+	fmt.Println(g.ToFixedGrid(' '))
 }
