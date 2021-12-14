@@ -1,4 +1,9 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p14/common";
 
-lines
+parse |
+fuserules |
+countpairs |
+reduce range(10) as $_ ( . ; step ) |
+countelems |
+map(.) | max - min
