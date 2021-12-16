@@ -1,4 +1,5 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p12/common";
 
-lines
+parse |
+countpaths(false)
