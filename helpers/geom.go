@@ -65,6 +65,14 @@ func MakeFixedGrid(rows, cols int, fill rune) FixedGrid {
 	return g
 }
 
+func (g FixedGrid) Copy() FixedGrid {
+	g2 := make(FixedGrid, len(g))
+	for i, r := range g {
+		g2[i] = append([]rune(nil), r...)
+	}
+	return g2
+}
+
 func (g FixedGrid) InBounds(p Pos) bool {
 	return p.Row >= 0 && p.Row < len(g) && p.Col >= 0 && p.Col < len(g[0])
 }
@@ -104,7 +112,15 @@ func ParseInfGrid(lines []string) InfGrid {
 	return g
 }
 
-func (g InfGrid) ToFixedGrid(fill rune) FixedGrid {
+func (g InfGrid) Copy() InfGrid {
+	g2 := make(InfGrid, len(g))
+	for p, v := range g {
+		g2[p] = v
+	}
+	return g2
+}
+
+func (g InfGrid) Bounds() (min, max Pos) {
 	minR, maxR := math.MaxInt, math.MinInt
 	minC, maxC := math.MaxInt, math.MinInt
 	for p := range g {
@@ -112,12 +128,17 @@ func (g InfGrid) ToFixedGrid(fill rune) FixedGrid {
 		minC, maxC = Min(p.Col, minC), Max(p.Col, maxC)
 	}
 
-	base := Pos{minR, minC}
+	return Pos{minR, minC}, Pos{maxR, maxC}
+}
 
-	g2 := MakeFixedGrid(maxR-minR+1, maxC-minC+1, fill)
+func (g InfGrid) ToFixedGrid(fill rune) FixedGrid {
+	base, max := g.Bounds()
+	g2 := MakeFixedGrid(max.Row-base.Row+1, max.Col-base.Col+1, fill)
 	for p, v := range g {
 		g2.Set(p.Sub(base), v)
 	}
 
 	return g2
 }
+
+func (g InfGrid) String() string { return g.ToFixedGrid(' ').String() }
