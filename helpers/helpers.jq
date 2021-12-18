@@ -15,6 +15,8 @@ def linegroups:
   map(select(length > 0)) # only keep non-empty linegroups
 ;
 
+def filterfirst(ffirst; f): [f] | (.[0] | ffirst), .[1:][];
+
 def assert(f; err; $loc):
     (if $loc then "\($loc.file):\($loc.line): " else "" end) as $pre |
     ( f // error($pre + (err|tostring)) | empty ), .;
