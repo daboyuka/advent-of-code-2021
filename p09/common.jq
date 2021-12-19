@@ -1,4 +1,3 @@
-#!/usr/bin/env jq -s -R -f
 include "./helpers";
 
 def parse: lines | map(split("")|map(tonumber));

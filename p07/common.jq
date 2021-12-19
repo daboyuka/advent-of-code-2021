@@ -1,4 +1,3 @@
-#!/usr/bin/env jq -s -R -f
 include "./helpers";
 
 # This file is included by both parts; only the distmetric differs.

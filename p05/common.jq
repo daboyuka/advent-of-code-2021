@@ -1,4 +1,3 @@
-#!/usr/bin/env jq -s -R -f
 include "./helpers";
 
 # Basic approach: parse input into lines into big array of points, then group

@@ -1,4 +1,3 @@
-#!/usr/bin/env jq -s -R -f
 include "./helpers";
 
 # This file is shared between parts A and B (only difference is calling
