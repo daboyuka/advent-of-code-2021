@@ -1,4 +1,12 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p18/common";
 
-lines
+parse |
+[
+  range(length) as $i |
+  range(length - $i - 1) as $j |
+  [ .[$i], .[$j] ] |
+  padd |
+  mag
+] |
+max

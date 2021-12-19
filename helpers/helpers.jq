@@ -1,5 +1,13 @@
 # Acts as debug, except values are filtered by "what" writing to stderr (values flow through unaffected).
-def debugtee(what): (what | debug | empty), . ;
+def debugtee(what):
+  (
+    [what] |
+    if length > 1 then map(tostring) | join(" ")
+    else . end |
+    debug |
+    empty
+  ), .
+;
 
 # Splits input as per -sR into non-empty lines
 def lines: split("\n") | map(select(. != "")) ;

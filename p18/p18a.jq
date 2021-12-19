@@ -1,4 +1,7 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p18/common";
 
-lines
+parse |
+padd |
+debug |
+mag
