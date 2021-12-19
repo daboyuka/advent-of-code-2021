@@ -1,4 +1,6 @@
-#!/usr/bin/env jq -s -R -f
-include "./helpers";
+#!/usr/bin/env jq -s -R -r -f
+include "p13/common";
 
-lines
+parse |
+folds |
+render
