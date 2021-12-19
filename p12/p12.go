@@ -3,96 +3,55 @@ package p12
 import (
 	"fmt"
 	"io"
-	"sort"
-	"strings"
+	"unicode"
 
 	. "aoc2021/helpers"
 )
 
-type PathSeg struct{ A, B string }
+type Caves map[string][]string // [from] -> tos
 
-func traverse(at string, nPaths int, path []string, edges map[string][]string, visited map[string]bool) (nToEnd int) {
-	for _, next := range edges[at] {
-		if next == "start" {
-			continue
-		} else if next == "end" {
-			nToEnd += nPaths
-			//fmt.Println(nPaths, "x", path)
-		} else if strings.ToLower(next) == next {
-			if visited[next] {
-				continue
-			}
-
-			visited[next] = true
-			nToEnd += traverse(next, nPaths, append(path, next), edges, visited)
-			delete(visited, next)
-		} else {
-			nToEnd += traverse(next, nPaths, append(path, next), edges, visited)
-		}
+func parse(in io.Reader) Caves {
+	edges := make(Caves)
+	for _, l := range ReadLines(in) {
+		a, b := Split2(l, "-")
+		edges[a] = append(edges[a], b)
+		edges[b] = append(edges[b], a)
 	}
-	return nToEnd
+	return edges
 }
 
-func traverse2(at string, nPaths int, path []string, edges map[string][]string, visited map[string]bool, doubleVisited bool) (nToEnd int) {
+func traverse(at string, edges Caves, visited map[string]bool, allowDoubleVisit bool) (nPaths int) {
 	for _, next := range edges[at] {
 		if next == "start" {
 			continue
 		} else if next == "end" {
-			nToEnd += nPaths
-			//fmt.Println(nPaths, "x", append(path, next))
-		} else if strings.ToLower(next) == next {
-			isV := visited[next]
-			if isV {
-				if doubleVisited {
+			nPaths++
+		} else if unicode.IsLower(rune(next[0])) {
+			if alreadyVisited := visited[next]; alreadyVisited {
+				if !allowDoubleVisit {
 					continue
 				}
-				nToEnd += traverse2(next, nPaths, append(path, next), edges, visited, true)
+				nPaths += traverse(next, edges, visited, false)
 			} else {
 				visited[next] = true
-				nToEnd += traverse2(next, nPaths, append(path, next), edges, visited, doubleVisited)
+				nPaths += traverse(next, edges, visited, allowDoubleVisit)
 				delete(visited, next)
 			}
 		} else {
-			nToEnd += traverse2(next, nPaths, append(path, next), edges, visited, doubleVisited)
+			nPaths += traverse(next, edges, visited, allowDoubleVisit)
 		}
 	}
-	return nToEnd
+	return nPaths
 }
 
 func A(in io.Reader) {
-	lines := ReadLines(in)
-	segs := make([]PathSeg, len(lines))
-	for i, l := range lines {
-		segs[i].A, segs[i].B = Split2(l, "-")
-	}
-
-	edges := make(map[string][]string)
-	for _, seg := range segs {
-		edges[seg.A] = append(edges[seg.A], seg.B)
-		edges[seg.B] = append(edges[seg.B], seg.A)
-	}
-
-	nToEnd := traverse("start", 1, []string{"start"}, edges, make(map[string]bool, len(edges)))
+	caves := parse(in)
+	nToEnd := traverse("start", caves, make(map[string]bool, len(caves)), false)
 	fmt.Println(nToEnd)
 }
 
 func B(in io.Reader) {
-	lines := ReadLines(in)
-	segs := make([]PathSeg, len(lines))
-	for i, l := range lines {
-		segs[i].A, segs[i].B = Split2(l, "-")
-	}
-
-	edges := make(map[string][]string)
-	for _, seg := range segs {
-		edges[seg.A] = append(edges[seg.A], seg.B)
-		edges[seg.B] = append(edges[seg.B], seg.A)
-	}
-
-	for _, out := range edges {
-		sort.Strings(out)
-	}
-
-	nToEnd := traverse2("start", 1, []string{"start"}, edges, make(map[string]bool, len(edges)), false)
+	caves := parse(in)
+	nToEnd := traverse("start", caves, make(map[string]bool, len(caves)), true)
 	fmt.Println(nToEnd)
 }
