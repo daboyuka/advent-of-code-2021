@@ -1,4 +1,6 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p17/common";
 
-lines
+parse as $box |
+[ simulateall($box) | select(.hit) ] |
+length
