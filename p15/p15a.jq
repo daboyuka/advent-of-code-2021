@@ -1,4 +1,7 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "./helpers/grid";
+include "p15/common";
 
-lines
+parsenumgrid |
+computerisk(bottomright) |
+at(bottomright)

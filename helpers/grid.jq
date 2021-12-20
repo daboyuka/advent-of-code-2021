@@ -1,14 +1,17 @@
 include "./helpers";
 
+def parsegrid: lines | map(split(""));
 def parsenumgrid: lines | map(split("")|map(tonumber));
+
+def rendergrid: map(join("")) | join("\n");
 
 def scanpoints:  # input: grid, output: all coordinates
   ((range(length)|[.]) + (range(.[0]|length)|[.]))
 ;
 
-def inbounds($p):
-  $p[0] >= 0 and $p[0] < length and
-  $p[1] >= 0 and $p[1] < (.[0]|length)
+def inbounds($grid):
+  .[0] >= 0 and .[0] < ($grid|length) and
+  .[1] >= 0 and .[1] < ($grid[0]|length)
 ;
 
 def at($p):
