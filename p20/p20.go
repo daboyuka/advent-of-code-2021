@@ -21,13 +21,19 @@ func parse(in io.Reader) (e Enhancer, g InfGrid) {
 	return e, ParseInfGrid(lines[2:])
 }
 
-func window(p Pos, g InfGrid, background rune) int {
+func window(center Pos, g InfGrid, bg rune) int {
 	v := 0
 	for roff := -1; roff <= 1; roff++ {
 		for coff := -1; coff <= 1; coff++ {
 			off := Pos{roff, coff}
+
+			c, ok := g[center.Add(off)]
+			if !ok {
+				c = bg
+			}
+
 			v <<= 1
-			if c, ok := g[p.Add(off)]; (ok && c == '#') || (!ok && background == '#') {
+			if c == '#' {
 				v++
 			}
 		}
@@ -35,55 +41,37 @@ func window(p Pos, g InfGrid, background rune) int {
 	return v
 }
 
-func evolve(e Enhancer, g InfGrid, background rune) InfGrid {
-	g2 := make(InfGrid)
+func evolve(e Enhancer, g InfGrid, bg rune) (g2 InfGrid, nextBG rune) {
+	g2 = make(InfGrid)
 	min, max := g.Bounds()
-	fmt.Println(min, max)
 
-	for r := min.Row - 2; r <= max.Row+2; r++ {
-		for c := min.Col - 2; c <= max.Col+2; c++ {
+	for r := min.Row - 1; r <= max.Row+1; r++ {
+		for c := min.Col - 1; c <= max.Col+1; c++ {
 			p := Pos{r, c}
-			v := window(p, g, background)
+			v := window(p, g, bg)
 			g2[p] = e[v]
 		}
 	}
 
-	return g2
+	if bg == '#' {
+		return g2, e[0b111111111]
+	} else {
+		return g2, e[0b000000000]
+	}
 }
 
 func A(in io.Reader) {
 	e, g := parse(in)
-
-	g = evolve(e, g, '.')
-	g = evolve(e, g, e[0])
-	count := 0
-	for _, c := range g {
-		if c == '#' {
-			count++
-		}
+	for i, bg := 0, '.'; i < 2; i++ {
+		g, bg = evolve(e, g, bg)
 	}
-	fmt.Println(count)
+	fmt.Println(g.Count('#'))
 }
 
 func B(in io.Reader) {
 	e, g := parse(in)
-
-	bg := '.'
-	for i := 0; i < 50; i++ {
-		g = evolve(e, g, bg)
-
-		if bg == '.' {
-			bg = e[0]
-		} else {
-			bg = e[511]
-		}
+	for i, bg := 0, '.'; i < 50; i++ {
+		g, bg = evolve(e, g, bg)
 	}
-
-	count := 0
-	for _, c := range g {
-		if c == '#' {
-			count++
-		}
-	}
-	fmt.Println(count)
+	fmt.Println(g.Count('#'))
 }

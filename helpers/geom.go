@@ -91,6 +91,17 @@ func (g FixedGrid) Set(p Pos, v rune) {
 	g[p.Row][p.Col] = v
 }
 
+func (g FixedGrid) Count(x rune) (count int) {
+	for _, r := range g {
+		for _, c := range r {
+			if c == x {
+				count++
+			}
+		}
+	}
+	return count
+}
+
 func (g FixedGrid) String() string {
 	sb := strings.Builder{}
 	for _, r := range g {
@@ -139,6 +150,15 @@ func (g InfGrid) ToFixedGrid(fill rune) FixedGrid {
 	}
 
 	return g2
+}
+
+func (g InfGrid) Count(x rune) (count int) {
+	for _, c := range g {
+		if c == x {
+			count++
+		}
+	}
+	return count
 }
 
 func (g InfGrid) String() string { return g.ToFixedGrid(' ').String() }
