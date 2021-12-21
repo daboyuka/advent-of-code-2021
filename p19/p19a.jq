@@ -1,4 +1,6 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p19/common";
 
-lines
+parse |
+solve |
+map(.[0][]) | unique | length
