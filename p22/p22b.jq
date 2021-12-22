@@ -1,4 +1,6 @@
 #!/usr/bin/env jq -s -R -f
-include "./helpers";
+include "p22/common";
 
-lines
+parse |
+sumcubes |
+map(cubevol) | add
