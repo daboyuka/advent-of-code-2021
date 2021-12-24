@@ -4,352 +4,428 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strings"
 
 	. "aoc2021/helpers"
 )
 
-type State struct {
-	Hall  [11]rune
-	Rooms [4][2]rune // [4] left to right, [2] top to bottom
+const NumRooms = 4
+
+type Amphipod struct {
+	Kind   int  // 0–3 (A–D)
+	Room   int  // coordinate (2, 4, 6 or 8)
+	Depth  int  // depth in room (0–max)
+	AtRest bool // already in final position
 }
 
-func (s State) String() string {
-	sb := strings.Builder{}
-	sb.WriteString("#############\n")
-
-	sb.WriteRune('#')
-	for _, c := range s.Hall {
-		if c == 0 {
-			sb.WriteRune('.')
-		} else {
-			sb.WriteRune(c)
-		}
-	}
-	sb.WriteString("#\n")
-
-	sb.WriteString("###")
-	for _, room := range s.Rooms {
-		if room[0] == 0 {
-			sb.WriteRune('.')
-		} else {
-			sb.WriteRune(room[0])
-		}
-		sb.WriteRune('#')
-	}
-	sb.WriteString("##\n")
-
-	sb.WriteString("  #")
-	for _, room := range s.Rooms {
-		if room[1] == 0 {
-			sb.WriteRune('.')
-		} else {
-			sb.WriteRune(room[1])
-		}
-		sb.WriteRune('#')
-	}
-	sb.WriteString("  \n")
-
-	sb.WriteString("  #########  \n")
-	return sb.String()
+type Problem struct {
+	Amphipods [][NumRooms]Amphipod // [depth][room]
+	Targets   [NumRooms]int
 }
 
-func hallPosForRoom(room int) (hpos int) {
+type Move struct {
+	Amphipod
+	HallPos int
+	Out     bool
+}
+
+func roomToHallPos(room int) (hpos int) {
 	return 2*room + 2
-}
-
-func tryMoveHallToRoom(state State, kind rune, fromPos int, targets [4]int) (dist int, outState State, ok bool) {
-	room := targets[kind-'A']
-	if roomTop := state.Rooms[room][0]; roomTop != 0 {
-		return 0, State{}, false // room full
-	} else if bottomKind := state.Rooms[room][1]; bottomKind != 0 && bottomKind != kind && bottomKind != kind-'A'+'a' {
-		return 0, State{}, false // room has wrong kind of amphi inside
-	}
-
-	bottomOpen := state.Rooms[room][1] == 0
-
-	entryPos := hallPosForRoom(room)
-	if fromPos < entryPos {
-		for _, c := range state.Hall[fromPos+1 : entryPos] {
-			if c != 0 {
-				return 0, State{}, false
-			}
-		}
-		dist = 1 + (entryPos - fromPos)
-	} else { // hpos > leftHall
-		for _, c := range state.Hall[entryPos+1 : fromPos] {
-			if c != 0 {
-				return 0, State{}, false
-			}
-		}
-		dist = 1 + (fromPos - entryPos)
-	}
-
-	newKind := kind - 'A' + 'a'
-	state.Hall[fromPos] = 0
-	if bottomOpen {
-		state.Rooms[room][1] = newKind
-		dist++
-	} else {
-		state.Rooms[room][0] = newKind
-	}
-	return dist, state, true
-}
-
-func tryMoveRoomToHall(state State, kind rune, fromRoom int, fromBottom bool, hpos int) (dist int, outState State, ok bool) {
-	if fromBottom && state.Rooms[fromRoom][0] != 0 {
-		return 0, State{}, false // blocked
-	}
-	entryPos := hallPosForRoom(fromRoom)
-	if hpos < entryPos {
-		for _, c := range state.Hall[hpos:entryPos] {
-			if c != 0 {
-				return 0, State{}, false
-			}
-		}
-		dist = 1 + (entryPos - hpos)
-	} else { // hpos > entryPos
-		for _, c := range state.Hall[entryPos+1 : hpos+1] {
-			if c != 0 {
-				return 0, State{}, false
-			}
-		}
-		dist = 1 + (hpos - entryPos)
-	}
-
-	state.Hall[hpos] = kind
-	if fromBottom {
-		state.Rooms[fromRoom][1] = 0
-		dist++
-	} else {
-		state.Rooms[fromRoom][0] = 0
-	}
-	return dist, state, true
-}
-
-func tryMoveRoomToRoom(state State, kind rune, fromRoom int, fromBottom bool, targets [4]int) (dist int, outState State, ok bool) {
-	toRoom := targets[kind-'A']
-	if fromRoom == toRoom {
-		return 0, State{}, false // already home
-	} else if fromBottom && state.Rooms[fromRoom][0] != 0 {
-		return 0, State{}, false // blocked in
-	} else if state.Rooms[toRoom][0] != 0 {
-		return 0, State{}, false // blocked out
-	} else if bottomKind := state.Rooms[toRoom][1]; bottomKind != 0 && bottomKind != kind && bottomKind != kind-'A'+'a' {
-		return 0, State{}, false // room mixed
-	}
-
-	fromEntry, toEntry := hallPosForRoom(fromRoom), hallPosForRoom(toRoom)
-	if fromEntry > toEntry {
-		fromEntry, toEntry = toEntry, fromEntry
-	}
-
-	for _, c := range state.Hall[fromEntry+1 : toEntry] {
-		if c != 0 {
-			return 0, State{}, false
-		}
-	}
-
-	newKind := kind - 'A' + 'a'
-	dist = 2 + toEntry - fromEntry // move out 1, over, in 1
-	if fromBottom {
-		dist++ // move from bottom
-		state.Rooms[fromRoom][1] = 0
-	} else {
-		state.Rooms[fromRoom][0] = 0
-	}
-	if state.Rooms[toRoom][1] == 0 {
-		dist++ // move to bottom
-		state.Rooms[toRoom][1] = newKind
-	} else {
-		state.Rooms[toRoom][0] = newKind
-	}
-
-	return dist, state, true
 }
 
 var validHallPos = [...]int{0, 1, 3, 5, 7, 9, 10}
 
-type SolnSet struct {
-	States   []State
-	Energies []int
+var kindEnergy = [...]int{
+	0: 1,
+	1: 10,
+	2: 100,
+	3: 1000,
 }
 
-func (s SolnSet) Len() int { return len(s.States) }
+func (m Move) ComesBefore(other Move, prob Problem) bool {
+	log := func(v ...interface{}) {
+		//if m.Kind == 0 && m.Room == 3 && m.Depth == 1 {
+		//	fmt.Println(v...)
+		//}
+	}
 
-func (s SolnSet) Less(i, j int) bool { return s.Energies[i] < s.Energies[j] }
+	if m.Room == other.Room && m.Depth == other.Depth && m.Out && !other.Out {
+		log(m, "comes before", other, "because leave-before-enter")
+		return true // we must leave before entering
+	}
 
-func (s SolnSet) Swap(i, j int) {
-	s.States[i], s.States[j] = s.States[j], s.States[i]
-	s.Energies[i], s.Energies[j] = s.Energies[j], s.Energies[i]
+	if m.Room == other.Room && m.Depth < other.Depth && m.Out && other.Out {
+		log(m, "comes before", other, "because blocker-leave-before-leave")
+		return true // blocker must leave before we do
+	}
+
+	//targetRoom := prob.Targets[m.Kind]
+	//if targetRoom == other.Room && !m.Out && other.Out { // entering target room occupied by other
+	//	if other.Depth == 0 {
+	//		log(m, "comes before", other, "because other-top-leave-before-enter")
+	//		return true // we're top amphi and must leave before other enters our room
+	//	}
+	//	if other.Depth == 1 && !other.AtRest {
+	//		log(m, "comes before", other, "because other-bottom-non-atrest-leave-before-enter")
+	//		return true // we're bottom non-at-rest amphi and must leave before other enters our room
+	//	}
+	//}
+
+	otherTargetRoom := prob.Targets[other.Kind]
+	//log("other entering our room", m, other, otherTargetRoom)
+	if otherTargetRoom == m.Room && m.Out && !other.Out { // other entering our room
+		if !m.AtRest {
+			log(m, "comes before", other, "because non-atrest-leave-before-other-enter")
+			return true // we're a non-at-rest amphi in original room and must leave before other enters our room
+		}
+	}
+
+	return false
 }
 
-func possibleMoves(state State, targets [4]int) (solns SolnSet) {
-	var r2r SolnSet
-	for roomIdx, room := range state.Rooms {
-		for depth, c := range room {
-			if c != 0 && c >= 'A' && c <= 'D' {
-				if dist, outState, ok := tryMoveRoomToRoom(state, c, roomIdx, depth != 0, targets); ok {
-					r2r.States, r2r.Energies = append(r2r.States, outState), append(r2r.Energies, dist*kindEnergy[c])
-				}
-			}
+func findMoveInsertRange(ins Move, moves []Move, prob Problem) (minIdx, maxIdx int) {
+	minIdx, maxIdx = 0, len(moves)
+	for i, m := range moves {
+		if ins.ComesBefore(m, prob) && maxIdx > i {
+			maxIdx = i
+		}
+		if m.ComesBefore(ins, prob) {
+			minIdx = i + 1
 		}
 	}
-	var h2r SolnSet
-	for i, c := range state.Hall {
-		if c != 0 && c >= 'A' && c <= 'D' {
-			if dist, outState, ok := tryMoveHallToRoom(state, c, i, targets); ok {
-				h2r.States, h2r.Energies = append(h2r.States, outState), append(h2r.Energies, dist*kindEnergy[c])
-			}
-		}
-	}
-	var r2h SolnSet
-	for roomIdx, room := range state.Rooms {
-		for depth, c := range room {
-			if c != 0 && c >= 'A' && c <= 'D' {
-				for _, hpos := range validHallPos {
-					if dist, outState, ok := tryMoveRoomToHall(state, c, roomIdx, depth != 0, hpos); ok {
-						r2h.States, r2h.Energies = append(r2h.States, outState), append(r2h.Energies, dist*kindEnergy[c])
-					}
-				}
-			}
-		}
-	}
-
-	sort.Sort(r2r)
-	sort.Sort(h2r)
-	sort.Sort(r2h)
-
-	solns = r2r
-	solns.States, solns.Energies = append(solns.States, h2r.States...), append(solns.Energies, h2r.Energies...)
-	solns.States, solns.Energies = append(solns.States, r2h.States...), append(solns.Energies, r2h.Energies...)
-	return solns
+	return minIdx, maxIdx
 }
 
-func minRemainingEnergy(state State, targets [4]int) (minEnergy int) {
-	for fromRoom, room := range state.Rooms {
-		for depth, c := range room {
-			if c < 'A' || c > 'D' {
-				continue
-			}
-
-			toRoom := targets[c-'A']
-			if fromRoom == toRoom {
-				continue
-			}
-
-			minDist := 2 + 2*Abs(fromRoom-toRoom) + depth
-			minEnergy += minDist * kindEnergy[c]
-		}
+func order(a, b int) (int, int) {
+	if a > b {
+		return b, a
 	}
-	return minEnergy
+	return a, b
 }
 
-func (s State) Won() bool {
-	for _, room := range s.Rooms {
-		a, b := room[0], room[1]
-		if a >= 'a' {
-			a -= 'a' - 'A'
+func findMinMoveRange(amph Amphipod, prob Problem) (min, max int) {
+	return order(roomToHallPos(amph.Room), roomToHallPos(prob.Targets[amph.Kind]))
+}
+
+func listHallPoses(moveStart, moveEnd int, extraDist int) (out []int) {
+	if extraDist == 0 {
+		from, to := 0, 0
+		for i, p := range validHallPos {
+			if p < moveStart {
+				from = i + 1
+			} else if p > moveEnd {
+				to = i
+				break
+			}
 		}
-		if b >= 'b' {
-			b -= 'b' - 'B'
+		return validHallPos[from:to]
+	}
+
+	out = make([]int, 0, 2)
+	for _, p := range validHallPos {
+		if p < moveStart && moveStart-p == extraDist {
+			out = append(out, p)
+		} else if p > moveEnd && p-moveEnd == extraDist {
+			out = append(out, p)
 		}
-		if a == 0 || a != b {
+	}
+	return out
+}
+
+// N.B.: both bounds inclusive
+func getMoveInterval(m Move, prob Problem) (int, int) {
+	var from, to int
+	if m.Out {
+		from, to = roomToHallPos(m.Room), m.HallPos
+	} else {
+		from, to = m.HallPos, roomToHallPos(prob.Targets[m.Kind])
+	}
+	return order(from, to)
+}
+
+func checkBlocking(pos int, moves []Move, prob Problem) (ok bool) {
+	for _, m := range moves {
+		start, end := getMoveInterval(m, prob)
+		if start <= pos && pos <= end {
 			return false
 		}
 	}
 	return true
 }
 
-var kindEnergy = [...]int{
-	'A': 1,
-	'B': 10,
-	'C': 100,
-	'D': 1000,
-}
-
-type Solution struct {
-	Path   []State
-	Energy int
-}
-
-func solve(cur State, energy int, path []State, bestSoln *Solution, targets [4]int) {
-	if cur.Won() {
-		if bestSoln.Energy == -1 || bestSoln.Energy > energy {
-			fmt.Println("new winner", energy)
-			*bestSoln = Solution{Path: path, Energy: energy}
+func computeOccupied(moves []Move, prob Problem) (occupied int) {
+	for _, m2 := range moves {
+		if m2.Out {
+			occupied |= 1 << m2.HallPos
+		} else {
+			occupied &^= 1 << m2.HallPos
 		}
-		return
-	} else if bestSoln.Energy != -1 && energy >= bestSoln.Energy {
-		return // already too much energy
-	} else if bestSoln.Energy != -1 && energy+minRemainingEnergy(cur, targets) >= bestSoln.Energy {
-		return // already too much energy
+	}
+	return occupied
+}
+
+func checkBlocked(m Move, moves []Move, prob Problem) (ok bool) {
+	start, end := getMoveInterval(m, prob)
+	occupied := computeOccupied(moves, prob)
+	return (occupied&(1<<(end+1)-1))>>start == 0
+}
+
+func iterateMoveOrders(indent string, moves []Move, order []Amphipod, extraDistByKind [4]int, prob Problem) (winner []Move) {
+	if len(order) == 0 {
+		return moves // all moves added successfully
 	}
 
-	next := possibleMoves(cur, targets)
-	for i, nextState := range next.States {
-		energyToNext := energy + next.Energies[i]
-		solve(nextState, energyToNext, append(path, nextState), bestSoln, targets)
+	log := func(...interface{}) {} //fmt.Println
+
+	amph := order[0]
+	order = order[1:]
+	if amph.AtRest {
+		return iterateMoveOrders(indent, moves, order, extraDistByKind, prob)
 	}
+
+	log(indent, string(rune(amph.Kind+'A')), amph.Room, amph.Depth)
+
+	out, in := Move{Amphipod: amph, Out: true}, Move{Amphipod: amph, Out: false}
+	outMinIdx, outMaxIdx := findMoveInsertRange(out, moves, prob)
+	inMinIdx, inMaxIdx := findMoveInsertRange(in, moves, prob)
+	//fmt.Println(amph.Room, amph.Depth, "step", len(moves)/2, ":", outMinIdx, outMaxIdx, inMinIdx, inMaxIdx)
+	if outMaxIdx < outMinIdx || inMaxIdx < inMinIdx {
+		log(indent+"  ", out, in, "no valid insertion point", moves)
+		return // no valid insertion point
+	}
+
+	moveStart, moveEnd := findMinMoveRange(amph, prob)
+	//fmt.Println("  move", moveStart, moveEnd)
+
+	extraDistAllowed := extraDistByKind[amph.Kind]
+	for extraDist := 0; extraDist <= extraDistAllowed; extraDist++ {
+		extraDistByKind[amph.Kind] = extraDistAllowed - extraDist
+
+		hallPoses := listHallPoses(moveStart, moveEnd, extraDist)
+
+		if len(hallPoses) == 0 {
+			log(indent+"  ", out, in, "insufficient energy with", extraDist, "of", extraDistAllowed, moves)
+			continue
+		}
+
+		for outIdx := outMinIdx; outIdx <= outMaxIdx; outIdx++ {
+			for inIdx := inMinIdx; inIdx <= inMaxIdx; inIdx++ {
+				if inIdx < outIdx {
+					continue
+				}
+
+				for _, hpos := range hallPoses {
+					log(indent+"  ", string(rune(amph.Kind+'A')), amph.Room, amph.Depth, hpos)
+
+					in.HallPos, out.HallPos = hpos, hpos
+					if !checkBlocking(hpos, moves[outIdx:inIdx], prob) ||
+						!checkBlocked(out, moves[:outIdx], prob) ||
+						!checkBlocked(in, moves[:inIdx], prob) {
+						log(indent+"    ", out, in, hpos, "fully blocked", moves)
+						continue
+					}
+
+					nextMoves := make([]Move, 0, len(moves)+2)
+					nextMoves = append(nextMoves, moves[:outIdx]...)
+					nextMoves = append(nextMoves, out)
+					nextMoves = append(nextMoves, moves[outIdx:inIdx]...)
+					nextMoves = append(nextMoves, in)
+					nextMoves = append(nextMoves, moves[inIdx:]...)
+
+					if winner = iterateMoveOrders(indent+"  ", nextMoves, order, extraDistByKind, prob); winner != nil {
+						return winner
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// IsAtRest returns true iff amphipod at room/depth is in its final location and need not move (in target room and not
+// blocking another amphipod).
+func (prob Problem) IsAtRest(room int, depth int) bool {
+	a := prob.Amphipods[depth][room]
+	if a.Room == prob.Targets[a.Kind] { // in target room
+		if a.Depth == len(prob.Amphipods)-1 { // at bottom of target room
+			return true
+		} else if prob.IsAtRest(room, depth+1) { // amphipods below is at rest, so can be are
+			return true
+		}
+	}
+	return false
+}
+
+// MinimumEnergy returns minimum energy to shuffle the amphipods, ignoring all blocking.
+// Actual energy will be this plus extra distance/energy needed to avoid blockers.
+func (prob Problem) MinimumEnergy() (energy int) {
+	nonAtRestByKind := [4]int{0, 0, 0, 0}
+	for depth, rooms := range prob.Amphipods {
+		for room, amph := range rooms {
+			if amph.AtRest {
+				continue
+			}
+			nonAtRestByKind[amph.Kind]++
+			sideDist := Abs(roomToHallPos(room) - roomToHallPos(prob.Targets[amph.Kind]))
+			// out + over + in to top slot (dist for 1/2 amphipod to reach bottom slot is added below)
+			dist := (depth + 1) + (sideDist) + 1
+			fmt.Println("extra energy", room, depth, prob.Targets[amph.Kind], sideDist, dist)
+			energy += dist * kindEnergy[amph.Kind]
+		}
+	}
+	for kind, num := range nonAtRestByKind {
+		// extra distance for amphipods moving into target slot; first takes 0 extra, second takes 1 extra
+		energy += (num - 1) * num / 2 * kindEnergy[kind]
+	}
+	return energy
 }
 
 func A(in io.Reader) {
-	//start := State{
-	//	Rooms: [4][2]rune{
-	//		{'B', 'A'},
-	//		{'C', 'D'},
-	//		{'B', 'C'},
-	//		{'D', 'A'},
-	//	},
+	//start := [2][4]rune{ // sample
+	//  {'B','C','B','D'},
+	//  {'A','D','C','A'},
 	//}
-	start := State{
-		Rooms: [4][2]rune{
-			{'B', 'C'},
-			{'B', 'A'},
-			{'D', 'A'},
-			{'D', 'C'},
-		},
+	start := [2][4]rune{ // real
+		{'B', 'B', 'D', 'D'},
+		{'C', 'A', 'A', 'C'},
 	}
 
-	fmt.Println(start)
+	const NumDepths = 2
 
-	move := func(which int) {
-		next := possibleMoves(start, [4]int{0, 1, 2, 3})
-		fmt.Println(which, next.Energies[which])
-		fmt.Println(next.States[which])
-
-		start = next.States[which]
+	prob := Problem{Amphipods: make([][NumRooms]Amphipod, NumDepths), Targets: [4]int{0, 1, 2, 3}}
+	for depth, rooms := range start {
+		for room, c := range rooms {
+			amph := Amphipod{
+				Kind:  int(c - 'A'),
+				Room:  room,
+				Depth: depth,
+			}
+			prob.Amphipods[depth][room] = amph
+		}
 	}
-	_ = move
 
-	//move(16)
-	//move(0)
-	//move(2)
-	//move(0)
-	//move(0)
-	//move(3)
-	//move(3)
-	//move(0)
-	//move(0)
-	//move(0)
-
-	//states, energies := possibleMoves(start, [4]int{0, 1, 2, 3})
-	//for i := range states {
-	//	fmt.Println(i, energies[i])
-	//	fmt.Println(states[i])
-	//}
-
-	//return
-
-	bestSoln := Solution{Energy: -1}
-	solve(start, 0, []State{start}, &bestSoln, [4]int{0, 1, 2, 3})
-	for _, s := range bestSoln.Path {
-		fmt.Println(s)
+	var sortedAmph []Amphipod
+	for depth, rooms := range prob.Amphipods {
+		for room, amph := range rooms {
+			amph.AtRest = prob.IsAtRest(room, depth)
+			prob.Amphipods[depth][room] = amph
+			sortedAmph = append(sortedAmph, amph)
+		}
 	}
-	fmt.Println(bestSoln.Energy)
+	sort.Slice(sortedAmph, func(i, j int) bool { return sortedAmph[i].Kind > sortedAmph[j].Kind })
+
+	fmt.Println("problem", prob)
+	fmt.Println("minimum energy", prob.MinimumEnergy())
+
+	var extraDists [NumRooms]int
+	for {
+		win := iterateMoveOrders("", nil, sortedAmph, extraDists, prob)
+		if win != nil {
+			fmt.Println("win", extraDists)
+			printMoves(win, prob)
+			break
+		}
+
+		for i, v := range extraDists {
+			if v == 8 {
+				extraDists[i] = 0
+			} else {
+				extraDists[i]++
+				break
+			}
+		}
+		if extraDists == ([NumRooms]int{}) {
+			break
+		}
+	}
+
+	energy := prob.MinimumEnergy()
+	for kind, extraDist := range extraDists {
+		energy += 2 * extraDist * kindEnergy[kind]
+	}
+	fmt.Println(energy)
+}
+
+func printMoves(moves []Move, prob Problem) {
+	for _, m := range moves {
+		kindStr := string(rune(m.Kind + 'A'))
+		if m.Out {
+			fmt.Println(kindStr, "at", m.Room, ",", m.Depth, "moves to hall", m.HallPos)
+		} else {
+			fmt.Println(kindStr, "at hall", m.HallPos, "moves to room", prob.Targets[m.Kind])
+		}
+	}
 }
 
 func B(in io.Reader) {
-	lines := ReadLines(in)
-	_ = lines
+	start := [4][4]rune{ // sample
+		{'B', 'C', 'B', 'D'},
+		{'D', 'C', 'B', 'A'},
+		{'D', 'B', 'A', 'C'},
+		{'A', 'D', 'C', 'A'},
+	}
+	//start := [4][4]rune{ // real
+	//	{'B', 'B', 'D', 'D'},
+	//	{'D', 'C', 'B', 'A'},
+	//	{'D', 'B', 'A', 'C'},
+	//	{'C', 'A', 'A', 'C'},
+	//}
+
+	const NumDepths = 4
+
+	prob := Problem{Amphipods: make([][NumRooms]Amphipod, NumDepths), Targets: [4]int{0, 1, 2, 3}}
+	for depth, rooms := range start {
+		for room, c := range rooms {
+			amph := Amphipod{
+				Kind:  int(c - 'A'),
+				Room:  room,
+				Depth: depth,
+			}
+			prob.Amphipods[depth][room] = amph
+		}
+	}
+
+	var sortedAmph []Amphipod
+	for depth, rooms := range prob.Amphipods {
+		for room, amph := range rooms {
+			amph.AtRest = prob.IsAtRest(room, depth)
+			prob.Amphipods[depth][room] = amph
+			sortedAmph = append(sortedAmph, amph)
+		}
+	}
+	sort.Slice(sortedAmph, func(i, j int) bool {
+		return sortedAmph[i].Depth < sortedAmph[j].Depth ||
+			sortedAmph[i].Kind > sortedAmph[j].Kind
+	})
+
+	fmt.Println("problem", prob)
+	fmt.Println("minimum energy", prob.MinimumEnergy())
+
+	var extraDists [NumRooms]int
+	for {
+		fmt.Println(extraDists)
+		win := iterateMoveOrders("", nil, sortedAmph, extraDists, prob)
+		if win != nil {
+			fmt.Println("win", extraDists)
+			printMoves(win, prob)
+			break
+		}
+
+		for i, v := range extraDists {
+			if v == 16 {
+				extraDists[i] = 0
+			} else {
+				extraDists[i]++
+				break
+			}
+		}
+		if extraDists == ([NumRooms]int{}) {
+			break
+		}
+	}
+
+	energy := prob.MinimumEnergy()
+	for kind, extraDist := range extraDists {
+		energy += 2 * extraDist * kindEnergy[kind]
+	}
+	fmt.Println(energy)
 }
