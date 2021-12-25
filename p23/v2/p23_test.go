@@ -1,4 +1,4 @@
-package p23
+package v2
 
 import "testing"
 
