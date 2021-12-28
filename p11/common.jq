@@ -4,7 +4,7 @@ include "./helpers/grid";
 # input, output: {g: grid, flashes: number}
 def flash:
   .flashes as $startflashes |
-  reduce (.g | scanpoints) as $pt ( . ;
+  reduce (.g | scangrid) as $pt ( . ;
     if .g | at($pt) <= 9 then .
     else
       .flashes += 1 |

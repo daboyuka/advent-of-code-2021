@@ -1,12 +1,13 @@
 #!/usr/bin/env jq -s -R -f
-include "p09/common";
+include "./helpers/grid";
 
 def lowpoints:
-  scanpoints as $pt |
-  if [ at($pt) < at($pt | nbr) ] | all then $pt else empty end
+  scangrid as $pt |
+  [ ( at($pt)//9 ) < ( at($pt | nbr4)//9 ) ] |  # neighbors are higher?
+  if all then $pt else empty end
 ;
 
-parse |
+parsenumgrid |
 [ at(lowpoints) + 1 ] |
 add
 

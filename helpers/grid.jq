@@ -5,7 +5,7 @@ def parsenumgrid: lines | map(split("")|map(tonumber));
 
 def rendergrid: map(join("")) | join("\n");
 
-def scanpoints:  # input: grid, output: all coordinates
+def scangrid:  # input: grid, output: all coordinates
   ((range(length)|[.]) + (range(.[0]|length)|[.]))
 ;
 
