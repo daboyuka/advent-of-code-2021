@@ -23,7 +23,9 @@ def linegroups:
   map(select(length > 0)) # only keep non-empty linegroups
 ;
 
-def filterfirst(ffirst; f): [f] | (.[0] | ffirst), .[1:][];
+# iterate application of f for $n times
+# $n == 0 -> . , 1 -> f, 2 -> f|f, ...
+def iterf($n; f): if $n == 0 then . else f | iterf($n-1; f) end;
 
 def assert(f; err; $loc):
     (if $loc then "\($loc.file):\($loc.line): " else "" end) as $pre |

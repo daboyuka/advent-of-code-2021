@@ -5,9 +5,14 @@ def parsenumgrid: lines | map(split("")|map(tonumber));
 
 def rendergrid: map(join("")) | join("\n");
 
-def scangrid:  # input: grid, output: all coordinates
-  ((range(length)|[.]) + (range(.[0]|length)|[.]))
+def griddims: [., .[0] | length];  # returns [rows, cols]
+
+# output: all coordinates between $startpt (incl.) and $endpt (excl.)
+def scanpoints($startpt; $endpt):
+  (range($startpt[0]; $endpt[0])|[.]) + (range($startpt[1]; $endpt[1])|[.])
 ;
+# input: grid, output: all coordinates
+def scangrid: scanpoints([0, 0]; griddims);
 
 def inbounds($grid):
   .[0] >= 0 and .[0] < ($grid|length) and
