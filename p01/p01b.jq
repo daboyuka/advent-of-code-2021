@@ -1,8 +1,7 @@
-#!/usr/bin/env jq -s -f
+#!/usr/bin/env jq -f
 
-reduce .[3:][] as $depth ( {prevwin: .[:3], inc: 0} ;  # keep .prevwin as a 3-element window
-  ( .prevwin[1:] + [$depth] ) as $nextwin |
-  .inc += if ($nextwin|add) > (.prevwin|add) then 1 else 0 end |
-  .prevwin = $nextwin
-) |
-.inc
+[inputs] as $depths
+| [$depths[:-3], $depths[3:]]
+| transpose
+| map(select (.[1] > .[0]))
+| length
